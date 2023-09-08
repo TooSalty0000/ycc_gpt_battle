@@ -40,4 +40,14 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  margin-left: 1rem;
+  margin-right: 1rem;
+}
+
+.Button.open {
+  background-color: red;
+}
+
+.Button.close {
+  background-color: green;
 }

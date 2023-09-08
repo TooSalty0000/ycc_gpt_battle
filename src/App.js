@@ -7,16 +7,15 @@ import Admin from "./Components/Admin.jsx";
 import { useState, useCallback, useEffect } from "react";
 import OpenAI from "openai";
 import { initializeApp } from "firebase/app";
-import { getDatabase } from "firebase/database";
+import { getDatabase, ref, onValue, set, get, child } from "firebase/database";
 import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
 
 function App() {
   //configs
-
   const firebaseConfig = {
     apiKey: process.env.REACT_APP_FIREBASE_API,
     authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
-    databaseURL: process.env.EACT_APP_FIREBASE_DATABASE_URL,
+    databaseURL: process.env.REACT_APP_FIREBASE_DATABASE_URL,
     projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
     storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
     messagingSenderId: process.env.REACT_APP_FIREBASE_MSG_SENDER_ID,
@@ -24,7 +23,7 @@ function App() {
   };
 
   const app = initializeApp(firebaseConfig);
-  // const database = getDatabase(app);
+  const database = getDatabase(app);
   const firebase = getFirestore(app);
 
   const openai = new OpenAI({
@@ -39,14 +38,36 @@ function App() {
   const [loggedIn, setLoggedIn] = useState(false);
   const [targetText, setTargetText] = useState("");
   const [numTries, setNumTries] = useState(0);
+  const [winner, setWinner] = useState(false);
 
   const addText = useCallback(async (text) => {
+    if (!boothOpen) {
+      alert("부스가 닫았습니다.\n 다음에 이용해 주세요.");
+      setLoading(true);
+      return;
+    }
+
     if (numTries <= 0) {
       alert("기회를 모두 소진 하셨습니다.\n 다음 제시어를 기달려 주세요.");
       return;
     }
+    if (winner) {
+      alert("이미 이겼습니다!\n 부스를 방문해 선물을 받아가세요!");
+      return;
+    }
 
     let prompt = text;
+
+    if (prompt === "") {
+      alert("입력된 내용이 없습니다.");
+      return;
+    }
+
+    if (prompt.includes(targetText)) {
+      alert("제시어는 사용하실 수 없습니다.");
+      return;
+    }
+
     let apiMessageObject = {
       role: "user",
       content: prompt,
@@ -71,11 +92,20 @@ function App() {
     setLoading(false);
     let apiResponse = response.choices[0].message;
     setAllMessages([...allMessages, apiMessageObject, apiResponse]);
-    if (apiResponse.content.includes(targetText)) {
-      alert("게임에 이겼습니다!\n부스를 방문해 선물을 받아가세요!");
-    }
     setNumTries(numTries - 1);
     localStorage.setItem("numTries", numTries - 1);
+    localStorage.setItem(
+      "allMessages",
+      JSON.stringify([...allMessages, apiMessageObject, apiResponse])
+    );
+
+    if (apiResponse.content.includes(targetText)) {
+      setWinner(true);
+      localStorage.setItem("winner", "true");
+      setTimeout(() => {
+        alert("게임에 이겼습니다!\n부스를 방문해 선물을 받아가세요!");
+      }, 1000);
+    }
   });
 
   const toggleLogin = () => {
@@ -112,6 +142,17 @@ function App() {
     alert("성공적으로 변경되었습니다.");
   };
 
+  const changeBoothState = async () => {
+    const state = !boothOpen;
+    const boothRef = ref(database, "boothOpen");
+    await set(boothRef, state).catch((err) => {
+      alert(err);
+    });
+    setBoothOpen(state);
+    console.log("Booth state changed to: ", state);
+    alert("성공적으로 변경되었습니다.");
+  };
+
   async function init() {
     setLoading(true);
     let _targetText = "";
@@ -129,10 +170,19 @@ function App() {
     if (savedTargetText === null || savedTargetText != _targetText) {
       localStorage.setItem("targetText", _targetText);
       localStorage.setItem("numTries", 5);
+      localStorage.setItem("allMessages", JSON.stringify([]));
+      localStorage.setItem("winner", "false");
       setNumTries(5);
     } else {
       const savedNumTries = localStorage.getItem("numTries");
       setNumTries(savedNumTries);
+      const pastMessages = localStorage.getItem("allMessages");
+      const savedWinner = localStorage.getItem("winner");
+      if (savedWinner !== null) setWinner(savedWinner == "true");
+      else setWinner(false);
+      if (pastMessages !== null) {
+        setAllMessages(JSON.parse(pastMessages));
+      }
     }
     setLoading(false);
   }
@@ -141,6 +191,19 @@ function App() {
     //get target text
     init().catch((err) => {
       alert(err);
+    });
+
+    const boothRef = ref(database, "boothOpen");
+
+    const listener = onValue(boothRef, (snapshot) => {
+      const data = snapshot.val();
+      setBoothOpen(data);
+      if (!data) {
+        alert("부스가 닫혔습니다.\n 다음에 이용해 주세요.");
+        setLoading(true);
+      } else {
+        setLoading(false);
+      }
     });
   }, []);
 
@@ -158,7 +221,11 @@ function App() {
             <TypeArea addText={addText} loading={loading} />
           </>
         ) : (
-          <Admin handleTextChange={handleTextChange} />
+          <Admin
+            handleTextChange={handleTextChange}
+            changeBoothState={changeBoothState}
+            boothState={boothOpen}
+          />
         )}
 
         {showLogin && (
