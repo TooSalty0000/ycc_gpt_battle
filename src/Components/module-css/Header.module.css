@@ -1,0 +1,30 @@
+.Container {
+  @apply px-8;
+  flex: 1.5;
+  background-color: var(--primary-color);
+  display: flex;
+  flex-direction: column;
+}
+
+.top {
+  flex: 2;
+  color: white;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.bottom {
+  flex: 1;
+  align-items: center;
+  display: flex;
+  flex-direction: row;
+}
+
+.targetTextDisplay {
+  @apply mx-auto px-5;
+  width: fit-content;
+  background-color: var(--secondary-color);
+  border-radius: 10px;
+}

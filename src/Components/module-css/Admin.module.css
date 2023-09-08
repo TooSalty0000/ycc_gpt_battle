@@ -1,0 +1,43 @@
+.Container {
+  flex: 7;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-image: url("../../assets/Images/yccBackground.png");
+  background-position: center;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-blend-mode: color;
+  background-color: rgba(255, 255, 255, 0.8);
+}
+
+.Inputarea {
+  @apply py-8;
+  background-color: #e0e0e0c8;
+  width: 80%;
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+}
+
+.Input {
+  background-color: white;
+  padding: 0.8rem;
+  margin: 3rem;
+}
+
+.Button {
+  background-color: #000000;
+  color: white;
+  border-radius: 20px;
+  padding: 0.8rem;
+  width: fit-content;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
