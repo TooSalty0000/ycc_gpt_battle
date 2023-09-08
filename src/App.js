@@ -188,12 +188,8 @@ function App() {
   }
 
   useEffect(() => {
-    //get target text
-    init().catch((err) => {
-      alert(err);
-    });
-
     const boothRef = ref(database, "boothOpen");
+    let shouldInit = true;
 
     const listener = onValue(boothRef, (snapshot) => {
       const data = snapshot.val();
@@ -201,10 +197,22 @@ function App() {
       if (!data) {
         alert("부스가 닫혔습니다.\n 다음에 이용해 주세요.");
         setLoading(true);
+        shouldInit = false;
       } else {
         setLoading(false);
       }
     });
+
+    //get target text
+    if (shouldInit) {
+      init().catch((err) => {
+        alert(err);
+      });
+    }
+
+    return () => {
+      listener();
+    };
   }, []);
 
   return (
